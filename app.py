@@ -6,10 +6,12 @@ import re
 import numpy as np
 from datetime import date, datetime
 from flask import Flask, render_template, request, jsonify, send_file
+from flask_cors import CORS
 from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
 
 app = Flask(__name__)
+CORS(app)
 
 # ---------------------------------------------------------------------------
 # Paths
@@ -599,4 +601,5 @@ def status():
     })
 
 if __name__ == '__main__':
-    app.run(debug=False, port=5001, host='0.0.0.0')
+    port = int(os.environ.get("PORT", 7860))
+    app.run(host='0.0.0.0', port=port)

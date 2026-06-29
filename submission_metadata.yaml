@@ -1,0 +1,3 @@
+team_name: "Vatsal and Krishna" # Update this to your official registered team name
+sandbox_link: "https://huggingface.co/spaces/YOUR_HF_USERNAME/YOUR_SPACE_NAME" # Update this after creating the HuggingFace Space
+reproduce_command: "python run_pipeline.py"
