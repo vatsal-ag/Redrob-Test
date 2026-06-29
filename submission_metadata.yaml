@@ -11,12 +11,12 @@ team_name: "AutoVault Intelligence"  # Used in leaderboard and announcements
 
 primary_contact:
   name: "Vatsal Agarwal"
-  email: "vatsal@example.com"   # Update this to your real email
-  phone: "+91-XXXXXXXXXX"        # Update this to your real phone number
+  email: "vatsalagarwal.2001@gmail.com"
+  phone: "+91-8697125925"
 
 team_members:
   - name: "Vatsal Agarwal"
-    email: "vatsal@example.com"  # Update this to your real email
+    email: "vatsalagarwal.2001@gmail.com"
     role: "Solo Participant"
 
 # ============================================================================
