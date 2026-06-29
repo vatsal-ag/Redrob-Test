@@ -1,3 +1,71 @@
-team_name: "AutoVault Intelligence"
-sandbox_link: "https://huggingface.co/spaces/YOUR_HF_USERNAME/YOUR_SPACE_NAME" # Update this after creating the HuggingFace Space
+# Redrob Hackathon — Submission Metadata Template
+#
+# Copy this file to your repo root as `submission_metadata.yaml` and fill it in.
+# The fields here should match what you submit via the portal at upload time.
+# Stage 3 review uses this file to verify your portal metadata.
+
+# ============================================================================
+# Team identity
+# ============================================================================
+team_name: "AutoVault Intelligence"  # Used in leaderboard and announcements
+
+primary_contact:
+  name: "Vatsal Agarwal"
+  email: "vatsal@example.com"   # Update this to your real email
+  phone: "+91-XXXXXXXXXX"        # Update this to your real phone number
+
+team_members:
+  - name: "Vatsal Agarwal"
+    email: "vatsal@example.com"  # Update this to your real email
+    role: "Solo Participant"
+
+# ============================================================================
+# Code and reproducibility
+# ============================================================================
+github_repo: "https://github.com/vatsal-ag/Redrob-Test"
+
+sandbox_link: "https://huggingface.co/spaces/YOUR_USERNAME/redrob-ranker" # UPDATE THIS
+
 reproduce_command: "python run_pipeline.py"
+
+# ============================================================================
+# Compute environment
+# ============================================================================
+compute:
+  platform: "MacBook Pro"
+  cpu_cores: 8
+  ram_gb: 16
+  python_version: "3.9"
+  os: "macOS"
+  uses_gpu_for_inference: false
+  has_network_during_ranking: false
+  pre_computation_required: true
+  pre_computation_time_minutes: 3
+
+# ============================================================================
+# AI tools declaration
+# ============================================================================
+ai_tools_used:
+  - "Gemini"
+
+ai_usage_summary: |
+  Used Google Antigravity Agent (Gemini) as a pair programming assistant to write the ranking logic, build the local web UI, construct the 7-layer scoring system, generate the HuggingFace deployment configurations, and ensure compliance with the hackathon rules.
+
+# ============================================================================
+# Approach summary (optional but recommended)
+# ============================================================================
+methodology_summary: |
+  7-Layer Behavior-Aware Contextual Ranking Engine.
+  Extracts implicit and explicit job description features (YoE, keywords, title semantics).
+  Uses a SentenceTransformer for base semantic matching, heavily modified by multiple penalty and boost multipliers including: Title Match Profile Gate, Skill Authenticity Verifier against career history, Behavioral Activity multipliers (response rate, last active, open to work), and Proctored Assessment boosts.
+  Handles edge cases dynamically. Automatically generates embedding cache to process 100k candidates offline.
+
+# ============================================================================
+# Declarations
+# ============================================================================
+declarations:
+  read_submission_spec: true
+  code_is_original_work: true
+  no_collusion: true
+  honeypot_check_done: true
+  reproduction_tested: true
