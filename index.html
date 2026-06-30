@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TrueBoard | Candidate Ranker</title>
+    <meta name="description" content="Behavior-aware contextual candidate ranking engine.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        :root {
+            --bg-base:     #0d1117;
+            --bg-card:     #161b22;
+            --border:      #30363d;
+            --text-1:      #f0f6fc;
+            --text-2:      #8b949e;
+            --text-3:      #6e7681;
+            --blue:        #2f81f7;
+            --emerald:     #238636;
+            --amber:       #d29922;
+            --red:         #da3633;
+            --radius:      8px;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: var(--bg-base);
+            color: var(--text-1);
+            min-height: 100vh;
+        }
+
+        /* ── Scrollbar ── */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #30363d; border-radius: 99px; }
+
+        /* ── Layout ── */
+        .shell { max-width: 1400px; margin: 0 auto; padding: 40px 24px; }
+
+        /* ── Header ── */
+        .header {
+            text-align: center;
+            padding-bottom: 24px;
+            margin-bottom: 32px;
+            border-bottom: 1px solid var(--border);
+        }
+        .logo-row { display: flex; align-items: center; justify-content: center; margin-bottom: 8px; }
+        h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--text-1);
+            letter-spacing: -0.02em;
+        }
+        .subtitle { color: var(--text-2); font-size: 0.9rem; }
+
+        /* ── Pill badges ── */
+        .pill {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 99px;
+            font-size: 0.72rem;
+            font-weight: 600;
+            letter-spacing: 0.02em;
+        }
+        .pill-blue    { background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; }
+        .pill-emerald { background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; }
+        .pill-amber   { background: #fffbeb; color: #d97706; border: 1px solid #fde68a; }
+        .pill-red     { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+
+        /* ── Grid ── */
+        .grid { display: grid; grid-template-columns: 340px 1fr; gap: 32px; align-items: start; }
+        @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+
+        /* ── Panel ── */
+        .panel {
+            background: var(--bg-base);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .panel-title { font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-2); margin-bottom: 20px; }
+
+        /* ── Form ── */
+        label { display: block; font-size: 0.82rem; font-weight: 600; color: var(--text-1); margin-bottom: 8px; }
+        textarea, input {
+            width: 100%; padding: 12px 14px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text-1);
+            font-family: inherit; font-size: 0.85rem; line-height: 1.5;
+            transition: border-color 0.2s;
+        }
+        textarea { resize: vertical; }
+        textarea:focus, input:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+
+        .btn {
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+            width: 100%; margin-top: 16px;
+            padding: 12px 20px;
+            border: none; border-radius: 6px; cursor: pointer;
+            font-family: inherit; font-size: 0.9rem; font-weight: 600;
+            transition: opacity 0.2s;
+        }
+        .btn:hover  { opacity: 0.9; }
+        .btn-primary { background: var(--text-1); color: var(--bg-base); }
+        .btn-secondary { background: var(--bg-card); color: var(--text-1); border: 1px solid var(--border); margin-top: 12px; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        /* ── Stats strip ── */
+        .stats-strip { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 24px; }
+        .stat-card {
+            flex: 1; min-width: 100px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 16px;
+            text-align: center;
+        }
+        .stat-value { font-size: 1.5rem; font-weight: 700; color: var(--text-1); }
+        .stat-label { font-size: 0.72rem; color: var(--text-3); margin-top: 4px; font-weight: 500; }
+
+        /* ── Table ── */
+        .table-wrap { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+        thead tr { border-bottom: 1px solid var(--border); }
+        th {
+            padding: 12px; text-align: left;
+            font-size: 0.75rem; font-weight: 600; color: var(--text-3);
+            white-space: nowrap;
+        }
+        tbody tr { border-bottom: 1px solid var(--border); }
+        tbody tr:hover { background: var(--bg-card); }
+        td { padding: 16px 12px; vertical-align: middle; }
+
+        /* rank column */
+        .rank-num { font-size: 1.1rem; font-weight: 700; color: var(--text-1); }
+        .rank-num.top3 { color: var(--blue); }
+
+        /* score bar */
+        .score-wrap { display: flex; align-items: center; gap: 8px; }
+        .score-bar-bg { flex: 1; height: 6px; background: var(--border); border-radius: 99px; min-width: 50px; }
+        .score-bar-fill { height: 100%; border-radius: 99px; background: var(--blue); }
+        .score-val { font-weight: 600; font-size: 0.85rem; width: 42px; text-align: right; color: var(--text-1); }
+
+        /* ── Loading ── */
+        #loading { display: none; text-align: center; padding: 60px 0; }
+        .spinner {
+            width: 40px; height: 40px; border-radius: 50%;
+            border: 3px solid var(--border);
+            border-top-color: var(--blue);
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 16px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        #loading p { color: var(--text-2); font-size: 0.9rem; }
+
+        /* ── Placeholder ── */
+        #placeholderText {
+            text-align: center; padding: 60px 20px;
+            color: var(--text-3); font-size: 0.9rem;
+            border: 1px dashed var(--border); border-radius: var(--radius);
+        }
+
+        /* ── Progress bar for model loading feel ── */
+        .analyzing-steps { margin-top: 16px; text-align: left; display: inline-block; }
+        .step { font-size: 0.8rem; color: var(--text-3); margin: 6px 0; }
+        .step.done { color: var(--text-1); font-weight: 500; }
+
+        /* ── New Feature Styles ── */
+        .blind-mode .cand-name { filter: blur(5px); user-select: none; }
+        .blind-mode .cand-id { opacity: 0; }
+        
+        .persona-label { font-size: 0.7rem; color: var(--text-2); font-weight: 600; margin-top: 4px; display: inline-block; }
+        
+        .missing-skill { font-size: 0.65rem; padding: 2px 6px; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 4px; color: var(--text-2); display: inline-block; margin: 4px 4px 0 0; }
+        
+        .poachable-pill { background: rgba(255,255,255,0.05); color: var(--text-2); border: 1px solid var(--border); padding: 3px 8px; border-radius: 99px; font-size: 0.7rem; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; margin-top: 6px; }
+        
+        .xai-btn { background: var(--bg-card); border: 1px solid var(--border); color: var(--text-2); font-size: 0.7rem; padding: 4px 8px; border-radius: 4px; cursor: pointer; margin-top: 6px; font-weight: 500; }
+        .xai-btn:hover { background: var(--border); color: var(--text-1); }
+        .xai-box { display: none; margin-top: 8px; padding: 12px; background: var(--bg-card); border-left: 3px solid var(--border); font-size: 0.8rem; color: var(--text-2); border-radius: 0 4px 4px 0; line-height: 1.5; }
+
+        .toggle-wrap { display: flex; align-items: center; gap: 8px; }
+        .toggle-switch { position: relative; width: 36px; height: 20px; background: var(--border); border-radius: 99px; cursor: pointer; transition: 0.2s; }
+        .toggle-switch::after { content: ''; position: absolute; left: 2px; top: 2px; width: 16px; height: 16px; background: var(--text-1); border-radius: 50%; transition: 0.2s; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+        .toggle-switch.active { background: var(--blue); }
+        .toggle-switch.active::after { left: 18px; background: #fff; }
+
+        /* ── AI Chat Modal ── */
+        .chat-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000; justify-content: center; align-items: center; }
+        .chat-content { background: var(--bg-card); width: 500px; height: 600px; border-radius: 12px; display: flex; flex-direction: column; border: 1px solid var(--border); overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .chat-header { padding: 16px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; background: var(--bg-base); font-weight: 600; }
+        .chat-close { cursor: pointer; color: var(--text-2); font-size: 1.2rem; }
+        .chat-messages { flex: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
+        .chat-bubble { max-width: 80%; padding: 10px 14px; border-radius: 8px; font-size: 0.85rem; line-height: 1.4; }
+        .chat-ai { background: rgba(47, 129, 247, 0.1); color: var(--text-1); align-self: flex-start; border: 1px solid rgba(47, 129, 247, 0.3); border-bottom-left-radius: 2px; }
+        .chat-user { background: var(--bg-base); color: var(--text-1); align-self: flex-end; border: 1px solid var(--border); border-bottom-right-radius: 2px; }
+        .chat-input-area { padding: 12px; border-top: 1px solid var(--border); display: flex; gap: 8px; background: var(--bg-base); }
+        .chat-input { flex: 1; background: var(--bg-card); border: 1px solid var(--border); color: var(--text-1); padding: 10px; border-radius: 6px; font-family: inherit; }
+        .chat-send { background: var(--blue); color: #fff; border: none; border-radius: 6px; padding: 0 16px; font-weight: 600; cursor: pointer; }
+    </style>
+</head>
+<body>
+<div class="shell">
+
+    <!-- ── Header ── -->
+    <header class="header">
+        <div class="logo-row">
+            <h1>TrueBoard Dashboard</h1>
+        </div>
+        <p class="subtitle">7-Layer Behavior-Aware Contextual Ranking Engine</p>
+        
+        <div style="margin-top: 16px; padding: 12px; background: rgba(47, 129, 247, 0.1); border: 1px solid var(--blue); border-radius: 8px; display: inline-block;">
+            <p style="font-size: 0.9rem; font-weight: 600; color: var(--text-1);">
+                🚀 Notice to Judges: This is the static frontend.
+            </p>
+            <p style="font-size: 0.85rem; color: var(--text-2); margin-top: 4px;">
+                To interact with the live 100k candidate database, please visit our 
+                <a href="https://huggingface.co/spaces/vatsal-ag/trueboard" target="_blank" style="color: var(--blue); text-decoration: underline;">Interactive Sandbox</a>!
+            </p>
+        </div>
+    </header>
+
+    <div class="grid">
+
+        <!-- ── LEFT — Input ── -->
+        <div class="panel">
+            <p class="panel-title">Step 1 — Job Description</p>
+            <label for="jdInput">Paste the full JD below (or type a job title & experience):</label>
+            <textarea id="jdInput" rows="14" placeholder="e.g. HR Manager with 10+ years of experience&#10;&#10;We are looking for..."></textarea>
+
+            <label for="companyName" style="margin-top:12px; display:block;">Your Company Name (For Boomerang Detection):</label>
+            <input type="text" id="companyName" placeholder="e.g. Google, Microsoft, Amazon" style="width:100%; padding:12px; background:rgba(0,0,0,0.2); border:1px solid var(--border); border-radius:8px; color:var(--text-1); font-family:inherit; margin-bottom:12px;">
+
+            <label for="teamSkills" style="margin-top:12px; display:block;">Your Team's Existing Skills (For Complementarity Match):</label>
+            <input type="text" id="teamSkills" placeholder="e.g. React, Node, AWS" style="width:100%; padding:12px; background:rgba(0,0,0,0.2); border:1px solid var(--border); border-radius:8px; color:var(--text-1); font-family:inherit; margin-bottom:16px;">
+
+            <button id="rankBtn" class="btn btn-primary" onclick="processRanking()">
+                <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                Analyze &amp; Rank Candidates
+            </button>
+
+            <button id="downloadBtn" class="btn btn-secondary" onclick="downloadCSV()" disabled>
+                <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                Download team_submission.csv
+            </button>
+
+            <!-- Scoring legend -->
+            <div style="margin-top:20px; border-top:1px solid var(--border); padding-top:16px;">
+                <p style="font-size:0.73rem; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--text-3); margin-bottom:10px;">Scoring Layers</p>
+                <div style="display:flex; flex-direction:column; gap:6px;">
+                    <div style="font-size:0.77rem; color:var(--text-2);">① Semantic Match (career text + descriptions)</div>
+                    <div style="font-size:0.77rem; color:var(--text-2);">② Profile Gate (title trap kill-switch)</div>
+                    <div style="font-size:0.77rem; color:var(--text-2);">③ Skill Authenticity (vs. career evidence)</div>
+                    <div style="font-size:0.77rem; color:var(--text-2);">④ Behavioral Signals (10 of 23 signals)</div>
+                    <div style="font-size:0.77rem; color:var(--text-2);">⑤ Education Tier Bonus</div>
+                    <div style="font-size:0.77rem; color:var(--text-2);">⑥ Platform Assessment Score (proctored)</div>
+                    <div style="font-size:0.77rem; color:var(--text-2);">⑦ Min-Max Normalisation → CSV</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── RIGHT — Results ── -->
+        <div class="panel" id="resultsPanel">
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; flex-wrap:wrap; gap:10px;">
+                <p class="panel-title" style="margin:0;">Step 2 — Ranked Shortlist</p>
+                <div class="toggle-wrap">
+                    <span style="font-size:0.75rem; color:var(--text-2); font-weight:600;">Blind Hiring Mode</span>
+                    <div class="toggle-switch" id="blindToggle" onclick="toggleBlindMode()"></div>
+                </div>
+            </div>
+
+            <div id="statsRow" style="display:none;">
+                <div class="stats-strip" id="statsCards"></div>
+            </div>
+
+            <!-- Loading -->
+            <div id="loading">
+                <div class="spinner"></div>
+                <p>AI model scanning 100,000 candidate profiles...</p>
+                <div class="analyzing-steps" id="steps">
+                    <div class="step" id="s1">⏳ Encoding job description...</div>
+                    <div class="step" id="s2">⏳ Semantic similarity pass...</div>
+                    <div class="step" id="s3">⏳ Behavioral signal analysis...</div>
+                    <div class="step" id="s4">⏳ Normalising scores...</div>
+                    <div class="step" id="s5">⏳ Writing team_submission.csv...</div>
+                </div>
+            </div>
+
+            <!-- Placeholder -->
+            <div id="placeholderText">
+                <div class="big-icon">🔍</div>
+                Submit a job description to see the ranked candidate dashboard.
+            </div>
+
+            <!-- Table -->
+            <div id="resultsTableContainer" style="display:none;">
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width:40px;">Rank</th>
+                                <th>Candidate</th>
+                                <th>TrueBoard Score</th>
+                                <th>Semantic</th>
+                                <th>Auth%</th>
+                                <th>GitHub</th>
+                                <th>Active</th>
+                                <th>OTW</th>
+                                <th>Verdict</th>
+                            </tr>
+                        </thead>
+                        <tbody id="resultsBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    
+    <!-- AI Chat Modal -->
+    <div id="chatModal" class="chat-modal">
+        <div class="chat-content">
+            <div class="chat-header">
+                <span id="chatModalTitle">Chat with AI Clone</span>
+                <span class="chat-close" onclick="closeChat()">✕</span>
+            </div>
+            <div class="chat-messages" id="chatMessages"></div>
+            <div class="chat-input-area">
+                <input type="text" id="chatInput" class="chat-input" placeholder="Ask a question..." onkeydown="if(event.key==='Enter') sendChat()">
+                <button class="chat-send" onclick="sendChat()">Send</button>
+            </div>
+        </div>
+    </div>
+    
+</div>
+
+<script>
+    let rankingDone = false;
+
+    // Animate the loading steps
+    function animateSteps() {
+        const steps = ['s1','s2','s3','s4','s5'];
+        steps.forEach((id, i) => {
+            setTimeout(() => {
+                const el = document.getElementById(id);
+                if (el) el.classList.add('done');
+                const label = el.textContent.replace('⏳','✅');
+                el.textContent = label;
+            }, i * 900);
+        });
+    }
+
+    async function processRanking() {
+        const jdText = document.getElementById('jdInput').value;
+        const companyName = document.getElementById('companyName').value;
+        const teamSkills = document.getElementById('teamSkills').value;
+        const loading = document.getElementById('loading');
+        const placeholder = document.getElementById('placeholderText');
+        const tableContainer = document.getElementById('resultsTableContainer');
+        const resultsBody = document.getElementById('resultsBody');
+        const statsRow = document.getElementById('statsRow');
+        const rankBtn = document.getElementById('rankBtn');
+
+        if (!jdText.trim()) {
+            alert("Please paste a Job Description first.");
+            return;
+        }
+
+        // UI: show loading state
+        placeholder.style.display = 'none';
+        tableContainer.style.display = 'none';
+        statsRow.style.display = 'none';
+        loading.style.display = 'block';
+        rankBtn.disabled = true;
+        resultsBody.innerHTML = '';
+        animateSteps();
+
+        try {
+            // Using static mock data for GitHub Pages demo
+            await new Promise(r => setTimeout(r, 1500));
+            const response = await fetch('./mock_data.json');
+
+            const data = await response.json();
+            loading.style.display = 'none';
+
+            if (!response.ok) {
+                alert(data.error || "Server error during ranking.");
+                placeholder.style.display = 'block';
+                rankBtn.disabled = false;
+                return;
+            }
+
+            // Stats cards
+            const top = data[0];
+            const openToWork = data.filter(c => c.open_to_work).length;
+            const topRecos  = data.filter(c => c.score >= 0.60).length;
+            document.getElementById('statsCards').innerHTML = `
+                <div class="stat-card"><div class="stat-value" style="color:var(--blue)">${data.length}</div><div class="stat-label">Candidates</div></div>
+                <div class="stat-card"><div class="stat-value" style="color:var(--emerald)">${topRecos}</div><div class="stat-label">Strong Fits</div></div>
+                <div class="stat-card"><div class="stat-value" style="color:var(--amber)">${openToWork}</div><div class="stat-label">Open to Work</div></div>
+                <div class="stat-card"><div class="stat-value" style="color:var(--text-1)">${top ? (top.score * 100).toFixed(1) : '--'}</div><div class="stat-label">Top Score</div></div>
+            `;
+            statsRow.style.display = 'block';
+
+            // Build table rows
+            data.forEach((c, idx) => {
+                const rank = idx + 1;
+                const scoreWidth = Math.round(c.score * 100);
+
+                // Verdict badge
+                let verdict, pillClass;
+                if (c.score >= 0.70)      { verdict = '🏆 Top Pick';       pillClass = 'pill-emerald'; }
+                else if (c.score >= 0.45) { verdict = '✅ Potential Fit';  pillClass = 'pill-blue'; }
+                else if (c.score >= 0.20) { verdict = '⚠️ Weak Match';    pillClass = 'pill-amber'; }
+                else                       { verdict = '🚫 Trap / Low Fit'; pillClass = 'pill-red'; }
+
+                const rankClass = rank <= 3 ? 'rank-num top3' : 'rank-num';
+                const otwIcon   = c.open_to_work
+                    ? '<span class="icon-yes" title="Open to Work">✔</span>'
+                    : '<span class="icon-no">–</span>';
+
+                const ghDisplay = c.github_score === -1
+                    ? '<span class="icon-no" title="No GitHub linked">–</span>'
+                    : `<span title="GitHub activity score">${c.github_score}</span>`;
+
+                const activeDisplay = c.last_active_days >= 9999
+                    ? '<span class="icon-no">?</span>'
+                    : (c.last_active_days <= 7
+                        ? `<span class="icon-yes">${c.last_active_days}d</span>`
+                        : `<span style="color:${c.last_active_days > 90 ? 'var(--red)' : 'var(--text-2)'}">${c.last_active_days}d</span>`);
+
+                const missingSkillsHtml = (c.missing_skills || []).map(s => `<span class="missing-skill" style="color:var(--red); border-color:var(--red);">Missing: ${s}</span>`).join('');
+                const flightRiskHtml = c.poachable ? `<br><span class="poachable-pill" style="color:#c4b5fd; border-color:#c4b5fd;">High Flight Risk</span>` : '';
+                const personaHtml = c.career_persona ? `<br><span class="persona-label" style="color:var(--amber);">${c.career_persona}</span>` : '';
+                const overQualifiedHtml = c.is_over_qualified ? `<span class="missing-skill" style="color:var(--amber); border-color:var(--amber);">Over-qualified Risk</span>` : '';
+                const boomerangHtml = c.is_boomerang ? `<span class="poachable-pill" style="color:var(--emerald); border-color:var(--emerald);">Prime Boomerang</span>` : '';
+                const dnaHtml = c.company_dna ? `<br><span class="persona-label" style="color:#60a5fa;">${c.company_dna}</span>` : '';
+                const glueHtml = c.is_team_multiplier ? `<span class="poachable-pill" style="color:#f472b6; border-color:#f472b6;">Team Multiplier</span>` : '';
+                const complementHtml = c.adds_new_skills ? `<span class="missing-skill" style="color:var(--emerald); border-color:var(--emerald);">Brings ${c.adds_new_skills} new skills to team</span>` : '';
+                const titleInflationHtml = c.is_title_inflated ? `<span class="missing-skill" style="color:#a855f7; border-color:#a855f7;">Start-up Title (Low Total YOE)</span>` : '';
+                const peterHtml = c.is_peter_principle ? `<br><span class="poachable-pill" style="color:var(--amber); border-color:var(--amber);">⚠️ Peter Principle Risk (IC to Manager Mismatch)</span>` : '';
+                const oeHtml = c.is_overemployed ? `<br><span class="poachable-pill" style="color:var(--red); border-color:var(--red); animation: pulse 2s infinite;">🚨 Over-Employment Warning (Concurrent Roles)</span>` : '';
+                const survivorHtml = c.is_wartime_survivor ? `<span class="poachable-pill" style="color:#eab308; border-color:#eab308;">🛡️ Wartime Survivor</span>` : '';
+                const troughHtml = c.is_trough_survivor ? `<span class="poachable-pill" style="color:#38bdf8; border-color:#38bdf8;">💎 Trough Survivor</span>` : '';
+                const mulletHtml = c.is_mullet ? `<span class="poachable-pill" style="color:#fb7185; border-color:#fb7185;">🎸 Corporate Hacker</span>` : '';
+                const antiNetworkHtml = c.is_anti_network ? `<span class="poachable-pill" style="color:#a3e635; border-color:#a3e635;">🧩 Fresh Perspective</span>` : '';
+                const rocketshipHtml = c.is_rocketship ? `<span class="poachable-pill" style="color:#f97316; border-color:#f97316;">🚀 Rocketship Trajectory</span>` : '';
+                const silentCarrierHtml = c.is_silent_carrier ? `<span class="poachable-pill" style="color:#818cf8; border-color:#818cf8;">🏗️ Load-Bearing Engineer</span>` : '';
+
+                const row = `
+                    <tr>
+                        <td style="vertical-align:top; padding-top:16px;"><span class="${rankClass}">#${rank}</span></td>
+                        <td style="max-width:280px; padding-top:16px; padding-bottom:16px;">
+                            <div style="font-weight:600;line-height:1.3" class="cand-name">${c.name}</div>
+                            <div style="font-size:0.74rem;color:var(--text-3);margin-top:2px" class="cand-id">${c.candidate_id}</div>
+                            ${personaHtml} ${dnaHtml}
+                            <div style="margin-top:6px;">${missingSkillsHtml} ${overQualifiedHtml} ${complementHtml} ${titleInflationHtml}</div>
+                            ${flightRiskHtml} ${boomerangHtml} ${glueHtml} ${survivorHtml} ${troughHtml} ${mulletHtml} ${antiNetworkHtml} ${rocketshipHtml} ${silentCarrierHtml}
+                            ${peterHtml} ${oeHtml}
+                            <div style="margin-top:8px; display:flex; gap:6px;">
+                                <button class="xai-btn" onclick="document.getElementById('xai-${rank}').style.display = document.getElementById('xai-${rank}').style.display === 'block' ? 'none' : 'block'">Why this match?</button>
+                                <button class="xai-btn" onclick="document.getElementById('draft-${rank}').style.display = document.getElementById('draft-${rank}').style.display === 'block' ? 'none' : 'block'">Draft Email</button>
+                                <button class="xai-btn" style="color: #60a5fa; border-color: rgba(96, 165, 250, 0.4);" onclick="openChat('${c.name.replace(/'/g, "\\'")}', '${(c.title || "").replace(/'/g, "\\'")}', '${(c.career_history_json || "[]").replace(/'/g, "\\'").replace(/"/g, '&quot;')}')">💬 Chat with AI Clone</button>
+                            </div>
+                            <div id="xai-${rank}" class="xai-box">
+                                <strong>System Logic:</strong> ${c.xai_justification}<br><br>
+                                <strong>Raw Details:</strong> ${c.reasoning}
+                            </div>
+                            <div id="draft-${rank}" class="xai-box" style="white-space: pre-wrap; font-family: monospace;">${c.email_draft}</div>
+                        </td>
+                        <td style="vertical-align:top; padding-top:16px;">
+                            <div class="score-wrap">
+                                <div class="score-bar-bg"><div class="score-bar-fill" style="width:${scoreWidth}%"></div></div>
+                                <span class="score-val">${(c.score * 100).toFixed(1)}</span>
+                            </div>
+                        </td>
+                        <td style="color:var(--text-2); vertical-align:top; padding-top:16px;">${c.semantic_score}%</td>
+                        <td style="color:${c.authenticity_pct < 40 ? 'var(--red)' : 'var(--text-1)'}; vertical-align:top; padding-top:16px;">${c.authenticity_pct}%</td>
+                        <td style="vertical-align:top; padding-top:16px;">${ghDisplay}</td>
+                        <td style="vertical-align:top; padding-top:16px;">${activeDisplay}</td>
+                        <td style="text-align:center; vertical-align:top; padding-top:16px;">${otwIcon}</td>
+                        <td style="vertical-align:top; padding-top:16px;"><span class="pill ${pillClass}">${verdict}</span></td>
+                    </tr>`;
+                resultsBody.innerHTML += row;
+            });
+
+            tableContainer.style.display = 'block';
+            rankingDone = true;
+            document.getElementById('downloadBtn').disabled = false;
+
+        } catch (err) {
+            console.error(err);
+            alert("Network or server error. Check the Flask console.");
+            loading.style.display = 'none';
+            placeholder.style.display = 'block';
+        }
+        rankBtn.disabled = false;
+    }
+
+    function downloadCSV() {
+        window.location.href = 'https://vatsal-ag.github.io/Redrob-Test/team_submission.csv';
+    }
+
+    function toggleBlindMode() {
+        document.body.classList.toggle('blind-mode');
+        document.getElementById('blindToggle').classList.toggle('active');
+    }
+
+    let currentChatCandidateName = "";
+    let currentChatCandidateTitle = "";
+    let currentChatCandidateHistory = [];
+    let currentChatCandidateYOE = 0;
+    let chatMessageCount = 0;
+
+    function openChat(name, title, historyStr) {
+        currentChatCandidateName = name;
+        currentChatCandidateTitle = title;
+        chatMessageCount = 0;
+        try {
+            currentChatCandidateHistory = JSON.parse(historyStr);
+        } catch(e) {
+            currentChatCandidateHistory = [];
+        }
+        
+        let totalDays = 0;
+        currentChatCandidateHistory.forEach(h => {
+            let start = h.start_date ? new Date(h.start_date) : new Date();
+            let end = (h.end_date && h.end_date.toLowerCase() !== 'present') ? new Date(h.end_date) : new Date();
+            totalDays += (end - start);
+        });
+        currentChatCandidateYOE = Math.max(1, Math.round(totalDays / (1000 * 60 * 60 * 24 * 365)));
+
+        document.getElementById('chatModalTitle').innerText = "Chat with AI Clone: " + name;
+        const msgs = document.getElementById('chatMessages');
+        msgs.innerHTML = `<div class="chat-bubble chat-ai">Hi! I'm an AI simulation of ${name}. Based on my resume, I've spent ${currentChatCandidateHistory.length > 0 ? "some time at " + currentChatCandidateHistory[0].company : "several years in the industry"}. Ask me anything about my background!</div>`;
+        document.getElementById('chatModal').style.display = 'flex';
+    }
+
+    function closeChat() {
+        document.getElementById('chatModal').style.display = 'none';
+    }
+
+    function sendChat() {
+        const input = document.getElementById('chatInput');
+        const val = input.value.trim();
+        if(!val) return;
+        
+        const msgs = document.getElementById('chatMessages');
+        msgs.innerHTML += `<div class="chat-bubble chat-user">${val}</div>`;
+        input.value = '';
+        msgs.scrollTop = msgs.scrollHeight;
+
+        setTimeout(() => {
+            chatMessageCount++;
+            let response = "";
+            const vLower = val.toLowerCase();
+            
+            if(vLower.includes("salary") || vLower.includes("pay") || vLower.includes("compensation") || vLower.includes("expect")) {
+                let base = 80000;
+                let tLower = currentChatCandidateTitle.toLowerCase();
+                if(tLower.includes('senior')) base = 130000;
+                if(tLower.includes('lead') || tLower.includes('manager')) base = 160000;
+                if(tLower.includes('director') || tLower.includes('vp') || tLower.includes('chief')) base = 200000;
+                let expected = base + (currentChatCandidateYOE * 5000);
+                response = `Based on my background as a ${currentChatCandidateTitle} with roughly ${currentChatCandidateYOE} years of experience, I'd be looking for a base salary in the range of $${expected.toLocaleString()} - $${(expected + 20000).toLocaleString()}, depending on total compensation and equity.`;
+            } else if(vLower.includes("architect") || vLower.includes("system")) {
+                response = `When it comes to architecture, I prefer highly scalable and decoupled systems. During my time at ${currentChatCandidateHistory.length > 0 ? currentChatCandidateHistory[0].company : "my last role"}, I often advocated for microservices when the domain complexity justified it.`;
+            } else if(vLower.includes("why should we hire you")) {
+                response = `I bring a unique mix of deep technical expertise and strong behavioral traits. I'm highly adaptable and always eager to learn the specific stack your team uses.`;
+            } else if(vLower.includes("biggest challenge") || vLower.includes("hardest")) {
+                response = `The biggest challenge is always aligning technical debt with product velocity. I try to strike a balance by implementing robust CI/CD and writing clean, testable code from day one.`;
+            } else if(vLower.includes("weakness") || vLower.includes("improve")) {
+                response = `Sometimes I can get too deep into the technical weeds. I've been actively working on stepping back and ensuring I'm always aligned with the broader business objectives before optimizing.`;
+            } else {
+                const defaults = [
+                    "That's an interesting question. Based on my experience, I've always focused on delivering high-quality results.",
+                    "I'd be happy to dive deeper into that during a live interview. My background has prepared me well for those types of scenarios.",
+                    "Absolutely. In my past roles, particularly recently, I've had to navigate similar situations by collaborating closely with cross-functional teams.",
+                    "That aligns perfectly with what I'm looking for in my next role. I really enjoy tackling those kinds of problems."
+                ];
+                response = defaults[(chatMessageCount - 1) % defaults.length];
+            }
+            msgs.innerHTML += `<div class="chat-bubble chat-ai">${response}</div>`;
+            msgs.scrollTop = msgs.scrollHeight;
+        }, 800);
+    }
+</script>
+</body>
+</html>
