@@ -13,9 +13,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 app = Flask(__name__)
 CORS(app)
 
-# ---------------------------------------------------------------------------
 # Paths
-# ---------------------------------------------------------------------------
 BASE_DIR     = os.path.dirname(__file__)
 JSONL_PATH   = os.path.join(BASE_DIR,
     '[PUB] India_runs_data_and_ai_challenge',
@@ -25,9 +23,7 @@ SAMPLE_PATH  = os.path.join(BASE_DIR, 'sample_candidates.json')
 OUTPUT_CSV   = os.path.join(BASE_DIR, 'team_submission.csv')
 EMBED_CACHE  = os.path.join(BASE_DIR, 'embeddings_cache.npy')
 
-# ---------------------------------------------------------------------------
 # Helpers
-# ---------------------------------------------------------------------------
 def days_since(date_str):
     if not date_str: return 9999
     try:
@@ -44,9 +40,7 @@ def build_text(c):
     parts.append(', '.join(s['name'] for s in c.get('skills',[])))
     return ' '.join(x for x in parts if x)
 
-# ---------------------------------------------------------------------------
 # Dynamic JD Parsers
-# ---------------------------------------------------------------------------
 def extract_jd_features(jd_text):
     text = jd_text.lower()
     
@@ -104,9 +98,7 @@ def extract_jd_features(jd_text):
         'keywords': keywords,
     }
 
-# ---------------------------------------------------------------------------
 # Scoring Layers
-# ---------------------------------------------------------------------------
 def dynamic_profile_gate(c, jd_features):
     p = c.get('profile', {})
     yoe = p.get('years_of_experience', 0.0)
@@ -260,9 +252,7 @@ def make_reasoning(c, semantic, auth):
         f"Open to work: {otw}."
     )
 
-# ---------------------------------------------------------------------------
 # STARTUP: Load candidates + pre-compute embeddings (runs ONCE)
-# ---------------------------------------------------------------------------
     print("============================================================")
     print("Engine — Initializing (Dynamic Universal Engine)")
     print("============================================================")
@@ -325,9 +315,7 @@ for c in CANDIDATES:
 
 print(f"✅ Startup complete in {time.time()-t0:.1f}s — server is ready!\n")
 
-# ---------------------------------------------------------------------------
 # Flask Routes
-# ---------------------------------------------------------------------------
 @app.route('/')
 def home():
     return render_template('Index.html')

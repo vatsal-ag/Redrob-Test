@@ -18,9 +18,7 @@ from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
 
-# ---------------------------------------------------------------------------
-# Config
-# ---------------------------------------------------------------------------
+# Paths
 CHALLENGE_DIR = os.path.join(os.path.dirname(__file__),
     '[PUB] India_runs_data_and_ai_challenge',
     'India_runs_data_and_ai_challenge')
@@ -29,9 +27,7 @@ JSONL_PATH   = os.path.join(CHALLENGE_DIR, 'candidates.jsonl')
 OUTPUT_CSV   = os.path.join(os.path.dirname(__file__), 'team_submission.csv')
 BATCH_SIZE   = 512
 
-# ---------------------------------------------------------------------------
 # Target Job Description (Can be changed to test any role)
-# ---------------------------------------------------------------------------
 JD_TEXT = """
 Senior AI Engineer — Founding Team — Redrob
 
@@ -58,9 +54,7 @@ Nice to have:
 - Prior HR-tech, recruiting-tech, marketplace product experience.
 """
 
-# ---------------------------------------------------------------------------
 # Helpers
-# ---------------------------------------------------------------------------
 def days_since(date_str):
     if not date_str: return 9999
     try:
@@ -77,9 +71,7 @@ def build_text(c):
     parts.append(', '.join(s['name'] for s in c.get('skills',[])))
     return ' '.join(x for x in parts if x)
 
-# ---------------------------------------------------------------------------
 # Dynamic JD Parsers
-# ---------------------------------------------------------------------------
 def extract_jd_features(jd_text):
     text = jd_text.lower()
     
@@ -137,9 +129,7 @@ def extract_jd_features(jd_text):
         'keywords': keywords,
     }
 
-# ---------------------------------------------------------------------------
-# Scoring Layers
-# ---------------------------------------------------------------------------
+# Scoring Layers (Imported/Duplicated from app.py)
 def dynamic_profile_gate(c, jd_features):
     p = c.get('profile', {})
     yoe = p.get('years_of_experience', 0.0)
@@ -290,9 +280,7 @@ def make_reasoning(c, semantic, auth):
         f"Open to work: {otw}."
     )
 
-# ---------------------------------------------------------------------------
-# Main pipeline
-# ---------------------------------------------------------------------------
+# Offline Dataset Loading
 def run():
     t0 = time.time()
 
